@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>이야기 스튜디오 v1.1</title>
+    
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <style>
+        /* 🔥 CDN을 통한 리디바탕 폰트 정의 */
+        @font-face {
+            font-family: 'Ridibatang';
+            src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_twelve@1.0/RIDIBatang.woff') format('woff');
+            font-weight: normal;
+            font-display: swap;
+        }
+
+        /* --- CSS Variables --- */
+        :root {
+            --bg-app: #F4F4F5; --bg-sidebar: #FFFFFF; --bg-paper: #FFFFFF; --bg-modal: #FFFFFF;
+            --text-main: #18181B; --text-mute: #71717A; --accent: #3B82F6; --accent-bg: #EFF6FF;
+            --border: #E4E4E7; --sidebar-width: 260px; --postit-bg: #FEF3C7; --postit-text: #78350F;
+            --postit-border: #FCD34D;
+            --alert-success: #10B981;
+            --alert-error: #EF4444;
+            /* 🔥 활성화 색상 정의 (회색 통일) */
+            --active-color: #3F3F46; /* ZINC-700 / 짙은 회색 */
+            --active-bg: #E5E7EB; /* GRAY-200 / 밝은 회색 */
+        }
+
+        :root[data-theme="dark"] {
+            --bg-app: #09090B; --bg-sidebar: #18181B; --bg-paper: #18181B; --bg-modal: #18181B;
+            --text-main: #FAFAFA; --text-mute: #A1A1AA; --accent: #60A5FA; --accent-bg: #27272A;
+            --border: #27272A; --postit-bg: #422006; --postit-text: #FEF3C7; --postit-border: #78350F;
+            /* 🔥 다크 모드에서의 활성화 색상 정의 */
+            --active-color: #FAFAFA; /* WHITE / 흰색 텍스트 */
+            --active-bg: #3F3F46; /* ZINC-700 / 짙은 회색 */
+        }
+
+        /* --- Global Reset and Base --- */
+        * { box-sizing: border-box; outline: none; margin: 0; padding: 0; }
+        
+        body {
+            /* 기본 폰트: 시스템 기본(sans-serif) */
+            font-family: sans-serif;
+            background-color: var(--bg-app); 
+            color: var(--text-main); height: 100vh; overflow: hidden; font-size: 14px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        
+        /* Ridibatang 폰트 활성화 클래스 (CDN 폰트 사용) */
+        body.custom-font-active {
+            font-family: 'Ridibatang', sans-serif !important;
+        }
+        
+        /* input, textarea에 폰트 상속 */
+        input, textarea, button {
+            font-family: inherit;
+        }
+
+        #app { display: flex; width: 100%; height: 100%; }
+
+        /* --- Project Manager View Styles --- */
+        .project-manager {
+            width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center;
+            padding: 40px 20px; overflow-y: auto;
+        }
+        .project-header {
+            width: 100%; max-width: 800px; display: flex; flex-direction: column; 
+            margin-bottom: 24px; padding-bottom: 12px; border-bottom: 2px solid var(--border);
+        }
+        .project-header-top {
+             width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;
+        }
+        /* 아이콘과 텍스트의 수직 중심을 맞추기 위해 h2에 display: flex 적용 */
+        .project-header-top h2 {
+            display: flex;
+            align-items: center;
+        }
+        
+        .global-actions {
+            display: flex; gap: 8px; align-items: center; justify-content: flex-end; 
+            width: 80%;
+        }
+        
+        /* 심플 아이콘 버튼 (관리자 목록) */
+        .global-action-icon {
+            background: none; border: none; 
+            color: var(--text-mute); cursor: pointer; border-radius: 6px;
+            width: 36px; height: 36px; padding: 0;
+            display: flex; align-items: center; justify-content: center;
+            transition: 0.2s;
+        }
+        .global-action-icon:hover {
+            background: var(--accent-bg); color: var(--accent);
+        }
+        
+        .global-btn {
+            background: var(--bg-paper); border: 1px solid var(--border);
+            color: var(--text-main); 
+            padding: 8px 12px; font-weight: 600; cursor: pointer; border-radius: 6px;
+            transition: 0.2s; display: flex; align-items: center; gap: 6px;
+            white-space: nowrap;
+        }
+        .global-btn:hover {
+            background: var(--accent-bg); color: var(--accent); border-color: var(--accent);
+        }
+        
+        .project-list {
+            width: 100%; max-width: 800px; list-style: none;
+            background: var(--bg-paper);
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        }
+        .project-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 16px; border-bottom: 1px solid var(--border);
+            cursor: default; 
+            transition: background-color 0.2s;
+        }
+        .project-item:last-child { border-bottom: none; }
+        .project-item:hover { background: var(--accent-bg); }
+        
+        /* 프로젝트 이름/정보를 한 줄로 */
+        .project-item-info { 
+            flex: 1; 
+            cursor: pointer; 
+            display: flex; 
+            align-items: baseline; 
+            gap: 12px; 
+        } 
+        .project-item-info:hover { color: var(--accent); } 
+        
+        .project-item-title { 
+            font-size: 16px; 
+            font-weight: 700; 
+            color: var(--text-main); 
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 70%; 
+        } 
+        .project-item:hover .project-item-title { color: var(--text-main); } 
+        
+        .project-item-input { 
+            width: 100%; background: var(--bg-app); border: 1px solid var(--accent); color: var(--text-main); padding: 4px 6px; font-size: 16px; font-family: inherit; font-weight: 700; 
+        }
+        
+        /* 날짜 정보를 작고 얇게, 한 줄에 배치 */
+        .project-item-date { 
+            font-size: 12px; 
+            color: var(--text-mute); 
+            font-weight: 400;
+            flex-shrink: 0; 
+        }
+        .project-actions { display: flex; gap: 8px; flex-shrink: 0; }
+        
+        /* --- Sidebar & Toolbar --- */
+        aside { 
+            width: var(--sidebar-width); 
+            background: var(--bg-sidebar); 
+            border-right: 1px solid var(--border); 
+            display: flex; 
+            flex-direction: column; 
+            flex-shrink: 0; 
+            transition: width 0.3s ease, min-width 0.3s ease; 
+            overflow: hidden; 
+            white-space: nowrap; 
+            z-index: 50; 
+        }
+        aside.closed { width: 0 !important; min-width: 0 !important; border: none; }
+        
+        .side-head { 
+            height: 50px; 
+            padding: 0 16px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between; 
+            border-bottom: 1px solid var(--border); 
+            font-weight: 700; 
+        }
+        .side-head span {
+            flex-shrink: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .tree-container { 
+            flex: 1; 
+            overflow-y: auto; 
+            padding: 10px 0; 
+        }
+        
+        /* 프로젝트 관리자 페이지 푸터 스타일 (버전 정보용) */
+        .manager-footer { 
+            /* 수정된 스타일 적용 */
+            margin-top: auto; 
+            margin-bottom: 0px; 
+            width: 100%; 
+            max-width: 800px; 
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: var(--text-mute);
+            background: transparent;
+            border: none;
+            flex-shrink: 0; 
+        }
+
+        /* 에디터 페이지 푸터 스타일 (아이콘 4개용) */
+        .editor-footer { 
+            height: 40px; 
+            border-top: 1px solid var(--border); 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            background: var(--bg-sidebar); 
+            padding: 0 10px;
+            gap: 4px; 
+            flex-shrink: 0;
+        }
+
+        /* 푸터 버튼 기본 스타일 (4개 아이콘 모두) */
+        .footer-icon-btn { 
+            width: 36px;
+            height: 36px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            padding: 0; 
+            
+            background: none; 
+            color: var(--text-mute); 
+            border-radius: 6px;
+            border: none; 
+            transition: 0.2s;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .footer-icon-btn:hover { 
+            background: var(--active-bg); /* 호버 시 밝은 회색 배경 */
+            color: var(--text-main); /* 호버 시 짙은 회색 아이콘 */
+        }
+        
+        /* 🔥 활성화된 버튼 (모바일 뷰, 타자기 모드, 폰트, 테마 모두) */
+        .footer-icon-btn.active {
+             background: var(--active-bg); /* 연한 회색 배경 */
+             color: var(--active-color); /* 짙은 회색 아이콘 */
+        }
+        .footer-icon-btn.active:hover {
+             background: var(--active-bg);
+             color: var(--active-color);
+             opacity: 0.8;
+        }
+        
+        /* --- 다크 모드 활성화 시 (짙은 배경/밝은 아이콘 유지) --- */
+        :root[data-theme="dark"] .footer-icon-btn.active {
+            /* 다크 모드의 --active-bg: ZINC-700 (#3F3F46) */
+            background: var(--active-bg); 
+            /* 다크 모드의 --text-main: #FAFAFA (흰색) */
+            color: var(--text-main); 
+        }
+        :root[data-theme="dark"] .footer-icon-btn.active:hover {
+            background: var(--active-bg); 
+            color: var(--text-main); 
+            opacity: 0.9;
+        }
+        /* -------------------------------------------------------------------------------- */
+
+
+        .footer-icon-btn i {
+            font-size: 20px;
+        }
+        
+        .footer-btn { 
+            background: none; border: none; cursor: pointer; 
+            width: 40px; height: 32px; border-radius: 6px; 
+            display: flex; align-items: center; justify-content: center; 
+            color: var(--text-mute); 
+        }
+        .footer-btn:hover { background: var(--bg-app); color: var(--text-main); }
+
+
+        .tree-list { list-style: none; padding-left: 20px; }
+        .tree-list.root { padding-left: 0; }
+        .node-row { display: flex; align-items: center; padding: 6px 16px; cursor: pointer; color: var(--text-mute); border-left: 3px solid transparent; }
+        .node-row:hover { background: var(--accent-bg); color: var(--text-main); }
+        .node-row.active { background: var(--accent-bg); color: var(--accent); font-weight: 600; border-left-color: var(--accent); }
+        .node-input { width: 100%; background: var(--bg-app); border: 1px solid var(--accent); color: var(--text-main); padding: 2px 4px; }
+        .node-actions { display: none; margin-left: auto; gap: 4px; }
+        .node-row:hover .node-actions { display: flex; }
+
+        /* --- Main Content & Editor --- */
+        main { flex: 1; display: flex; flex-direction: column; min-width: 0; position: relative; }
+        .toolbar { 
+            height: 50px; flex-shrink: 0; background: var(--bg-app); 
+            border-bottom: 1px solid var(--border); padding: 0 20px; 
+            display: flex; align-items: center; justify-content: space-between; 
+            z-index: 60; 
+        }
+        
+        /* 툴바 홈 버튼 삭제 */
+        .toolbar-home-btn { display: none; }
+        
+        .toolbar-left-group {
+            display: flex; align-items: center; gap: 12px; overflow: hidden;
+        }
+        .breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--text-mute); overflow: hidden; white-space: nowrap; }
+        .crumb-item { cursor: pointer; padding: 2px 4px; border-radius: 4px; transition: 0.2s; display: flex; align-items: center; gap: 4px; }
+        .crumb-item:hover { color: var(--accent); background: var(--accent-bg); }
+        .crumb-divider { opacity: 0.4; }
+        .crumb-current { font-weight: 800; color: var(--text-main); cursor: default; pointer-events: none; }
+        .workspace { flex: 1; overflow-y: auto; display: flex; justify-content: center; align-items: flex-start; padding-bottom: 0; position: relative; }
+        .paper-wrapper { width: 100%; max-width: 800px; padding: 40px 0 100px; display: flex; justify-content: center; transition: padding-bottom 0.3s; position: relative; z-index: 5; }
+        .paper-wrapper.typewriter { padding-bottom: 150vh; }
+        .paper { width: 100%; background: var(--bg-paper); border: 1px solid var(--border); padding: 60px 80px; min-height: 30vh; height: fit-content; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); position: relative; }
+        .paper.mobile { max-width: 480px; padding: 40px 24px; }
+        textarea.editor { 
+            width: 100%; min-height: 600px; border: none; resize: none; overflow: hidden; background: transparent; 
+            font-family: inherit; 
+            font-size: 18px; line-height: 1.8; color: var(--text-main); display: block; padding: 0; margin: 0; position: relative; z-index: 2; 
+        }
+        #caret-mirror { 
+            position: absolute; top: -9999px; left: -9999px; visibility: hidden; white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; 
+            font-family: inherit; 
+            font-size: 18px; line-height: 1.8; padding: 60px 80px; width: 800px; 
+        }
+        #caret-mirror.mobile { width: 480px; padding: 40px 24px; }
+        .typewriter-overlay { position: fixed; bottom: 0; left: 50%; transform: translateX(calc(-50% + var(--sidebar-offset, 0px))); pointer-events: none; z-index: 20; display: block; opacity: 1; transition: filter 0.3s, opacity 0.3s, width 0.3s, margin-bottom 0.3s; width: 947px; margin-bottom: 211px; }
+        [data-theme="dark"] .typewriter-overlay { filter: invert(1) grayscale(1) brightness(0.2); }
+        aside.closed ~ main .typewriter-overlay { --sidebar-offset: 0px; }
+        aside:not(.closed) ~ main .typewriter-overlay { --sidebar-offset: 130px; }
+        @media (max-width: 768px) { aside:not(.closed) ~ main .typewriter-overlay { display: none; } }
+        .corkboard { width: 100%; padding: 40px; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 24px; align-content: flex-start; }
+        .postit { background: var(--postit-bg); color: var(--postit-text); border: 1px solid var(--postit-border); height: 420px; display: flex; flex-direction: column; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); transition: 0.2s; }
+        .postit:hover { transform: translateY(-4px); box-shadow: 0 10px 15px rgba(0,0,0,0.1); z-index: 2; }
+        .postit-head { padding: 12px 16px; font-weight: 700; border-bottom: 1px dashed rgba(0,0,0,0.1); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .postit-body { flex: 1; padding: 8px; }
+        .postit-textarea { 
+            width: 100%; height: 100%; resize: none; border: none; background: transparent; 
+            font-family: inherit; 
+            font-size: 14px; line-height: 1.6; color: inherit; 
+        }
+        .status-bar { position: absolute; bottom: 0; right: 0; background: var(--bg-sidebar); border-top: 1px solid var(--border); border-left: 1px solid var(--border); padding: 8px 16px; font-size: 12px; color: var(--text-mute); cursor: pointer; z-index: 60; }
+        .status-bar:hover { background: var(--accent); color: white; border-color: var(--accent); }
+        
+        /* --- Modal/Alert Styles --- */
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(2px); z-index: 999; display: flex; align-items: center; justify-content: center; }
+        .modal-box { background: var(--bg-modal); width: 320px; padding: 24px; border: 1px solid var(--border); box-shadow: 0 10px 25px rgba(0,0,0,0.1); border-radius: 8px; }
+        .modal-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 15px; }
+        .modal-divider { height: 1px; background: var(--border); margin: 16px 0; }
+        .modal-input { 
+            width: 80px; text-align: right; background: var(--bg-app); border: 1px solid var(--border); color: var(--text-main); padding: 2px 4px; border-radius: 4px; 
+            font-family: inherit; 
+        }
+        
+        /* 토스트 알림을 하단 중앙으로 이동 */
+        .toast-alert {
+            position: fixed; 
+            bottom: 30px; 
+            left: 50%; 
+            transform: translateX(-50%) translateY(100%); 
+            z-index: 1000;
+            background: var(--bg-sidebar);
+            padding: 10px 18px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid var(--border);
+            opacity: 0; 
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .toast-alert.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0); 
+        }
+        .alert-icon { font-size: 18px; }
+        .alert-success .alert-icon { color: var(--alert-success); }
+        .alert-error .alert-icon { color: var(--alert-error); }
+
+        /* General Button Styles */
+        .btn { background: none; border: none; cursor: pointer; padding: 6px; color: var(--text-mute); display:flex; border-radius:4px; }
+        .btn:hover { color: var(--text-main); background: var(--active-bg); } /* 호버 색상 통일 */
+        .btn.active { color: var(--accent); background: var(--accent-bg); }
+
+        /* Scrollbar styles */
+        ::-webkit-scrollbar { width: 10px; height: 10px; }
+        ::-webkit-scrollbar-track { background: var(--bg-app); }
+        ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 5px; border: 2px solid var(--bg-app); }
+        [data-theme="dark"] ::-webkit-scrollbar-thumb { background: #475569; border-color: #09090B; }
+    </style>
+</head>
+<body :class="{'custom-font-active': isCustomFontActive}">
+
+<div id="caret-mirror"></div>
+
+<div id="app">
+    <template v-if="currentView === 'manager'">
+        <div class="project-manager">
+            <div class="project-header">
+                <div class="project-header-top">
+                    <h2><i class="ph ph-books" style="font-size: 24px; margin-right: 8px;"></i> 프로젝트 목록</h2>
+                    <div class="global-actions">
+                        <button class="global-action-icon" @click="exportAllData" title="현재 저장된 모든 프로젝트를 하나의 파일로 백업합니다.">
+                            <i class="ph ph-floppy-disk" style="font-size:20px;"></i>
+                        </button>
+                        <button class="global-action-icon" @click="triggerImportAll" title="백업 파일에서 모든 프로젝트를 불러와 기존 데이터를 덮어씁니다.">
+                            <i class="ph ph-upload-simple" style="font-size:20px;"></i>
+                        </button>
+                        
+                        <button class="global-btn" style="color:var(--accent); border-color:var(--accent);" @click="createProject">
+                            <i class="ph ph-plus" style="font-size:18px;"></i> 새 프로젝트
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <ul class="project-list">
+                <li v-for="proj in projects" :key="proj.id" class="project-item" :class="{ 'editing-mode': editingProjectId === proj.id }">
+                    <div class="project-item-info" @click="editingProjectId !== proj.id && loadProject(proj.id)">
+                        <div v-if="editingProjectId === proj.id" style="width: 100%;">
+                            <input 
+                                type="text" 
+                                v-model="proj.title" 
+                                class="project-item-input" 
+                                @blur="endEditProject"
+                                @keydown.enter="endEditProject"
+                                @click.stop 
+                                v-focus
+                            />
+                        </div>
+                        <template v-else>
+                            <div class="project-item-title">
+                                {{ proj.title }}
+                            </div>
+                            <div class="project-item-date">최근 저장: {{ formatDate(proj.updatedAt) }}</div>
+                        </template>
+                    </div>
+                    
+                    <div class="project-actions">
+                        <button class="btn" @click.stop="startEditProject(proj.id)" title="이름 수정">
+                            <i class="ph ph-pencil" style="font-size:20px;"></i>
+                        </button>
+                        <button class="btn" @click.stop="deleteProject(proj.id)" title="프로젝트 삭제" style="color:#EF4444;">
+                            <i class="ph ph-trash" style="font-size:20px;"></i>
+                        </button>
+                    </div>
+                </li>
+            </ul>
+            <div v-if="Object.keys(projects).length === 0" style="margin-top:20px; color:var(--text-mute);">
+                새로운 프로젝트를 시작해 보세요!
+            </div>
+            
+            <div class="manager-footer">
+                Copyright by 스위스버터
+            </div>
+        </div>
+    </template>
+    
+    <template v-else-if="currentView === 'editor' && currentProject">
+        <aside :class="{ closed: !sidebarOpen }">
+            <div class="side-head">
+                <span style="font-weight:800; letter-spacing:-0.5px;">{{ currentProject.title }}</span>
+                
+                <div style="display:flex; gap:4px;">
+                    <button class="btn" @click="addNode('folder')" title="새 폴더"><i class="ph ph-folder-plus" style="font-size:18px;"></i></button>
+                    <button class="btn" @click="addNode('chapter')" title="새 챕터"><i class="ph ph-file-plus" style="font-size:18px;"></i></button>
+                </div>
+            </div>
+
+            <div class="tree-container">
+                <sortable-tree :items="rootNodes" :all-nodes="currentProject.nodes" parent-id="root" class="root" @item-drop="onDrop"></sortable-tree>
+            </div>
+
+            <div class="editor-footer">
+                <button class="footer-icon-btn" @click="handleEditorExit" title="프로젝트 목록으로 돌아가기">
+                    <i class="ph ph-house-line"></i> 
+                </button>
+                 <button class="footer-icon-btn" :class="{active: mobileView}" @click="toggleMobile" title="모바일 뷰">
+                    <i class="ph ph-device-mobile"></i>
+                </button>
+                <button class="footer-icon-btn" :class="{active: typewriterMode}" @click="toggleTypewriter" title="타자기 모드 (포커스)">
+                    <i class="ph ph-crosshair"></i>
+                </button>
+                <button class="footer-icon-btn" :class="{active: isCustomFontActive}" @click="toggleRidibatangFont" title="글꼴 토글 (리디바탕)">
+                    <i class="ph ph-text-aa"></i>
+                </button>
+                <button class="footer-icon-btn" :class="{active: theme === 'dark'}" @click="toggleTheme" title="테마 변경">
+                    <i class="ph" :class="theme==='dark' ? 'ph-moon' : 'ph-sun'"></i>
+                </button>
+            </div>
+        </aside>
+
+        <main>
+            <div class="toolbar">
+                <div class="toolbar-left-group">
+                    <button class="btn" @click="sidebarOpen = !sidebarOpen"><i class="ph" :class="sidebarOpen ? 'ph-caret-left' : 'ph-list'" style="font-size:20px;"></i></button>
+                    
+                    <div class="breadcrumb">
+                        <template v-for="(item, index) in breadcrumbs" :key="index">
+                            <span v-if="index > 0" class="crumb-divider"><i class="ph ph-caret-right"></i></span>
+                            <div class="crumb-item" @click="selectNode(item.id)">
+                                <i v-if="item.type === 'folder'" class="ph ph-folder crumb-icon"></i>
+                                <i v-else class="ph ph-file-text" style="font-size:16px;"></i>
+                                <span class="crumb-text" :class="{'crumb-current': index === breadcrumbs.length - 1}">
+                                    {{ item.title }}
+                                </span>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+                
+                </div>
+
+            <div class="workspace" id="workspace-el" @click="focusEditor">
+                
+                <transition name="fade">
+                    <img v-if="typewriterMode && mobileView && activeNode && activeNode.type === 'chapter'" 
+                         src="./download.png" 
+                         alt="Typewriter" 
+                         class="typewriter-overlay"
+                         onerror="this.style.display='none'"> 
+                </transition>
+
+                <div v-if="activeNode && activeNode.type === 'chapter'" class="paper-wrapper" :class="{typewriter: typewriterMode}">
+                    <div class="paper" :class="{mobile: mobileView}">
+                        <textarea 
+                            class="editor" 
+                            v-model="activeNode.content" 
+                            placeholder="이곳에 글을 작성하세요..." 
+                            ref="editorRef" 
+                            @input="handleInput"
+                            @click="handleNav"
+                            @keyup="handleNav"
+                            spellcheck="false"
+                        ></textarea>
+                    </div>
+                </div>
+
+                <div v-else-if="activeNode && activeNode.type === 'folder'" class="corkboard">
+                    <div v-for="child in activeChildren" :key="child.id" class="postit">
+                        <div class="postit-head" @click.stop="selectNode(child.id)" title="에디터로 이동">
+                            <i class="ph" :class="child.type==='folder'?'ph-folder':'ph-file-text'"></i> {{ child.title }}
+                        </div>
+                        <div class="postit-body">
+                            <textarea class="postit-textarea" v-model="child.synopsis" @input="handleInput"></textarea>
+                        </div>
+                    </div>
+                    <div v-if="activeChildren.length === 0" style="grid-column:1/-1; text-align:center; color:var(--text-mute);">비어있는 폴더입니다.</div>
+                </div>
+
+                <div v-else style="align-self:center; color:var(--text-mute);">챕터를 선택하세요.</div>
+            </div>
+            
+            <div v-if="activeNode && activeNode.type === 'chapter'" class="status-bar" @click="showStats = true">
+                {{ stats.total }}자 ({{ stats.percent }}%)
+            </div>
+        </main>
+    </template>
+
+    <div v-if="showStats" class="modal-overlay" @click="showStats = false">
+        <div class="modal-box" @click.stop>
+            <div style="display:flex; justify-content:space-between; margin-bottom:20px; font-weight:bold; font-size:16px;">
+                <span>문서 통계</span><i class="ph ph-x" style="cursor:pointer" @click="showStats=false"></i>
+            </div>
+            <div class="modal-row"><span style="color:var(--text-mute)">공백 포함</span><strong>{{ stats.total }} 자</strong></div>
+            <div class="modal-row"><span style="color:var(--text-mute)">공백 제외</span><strong>{{ stats.noSpace }} 자</strong></div>
+            <div class="modal-row"><span style="color:var(--text-mute)">단어 수</span><strong>{{ stats.words }} 단어</strong></div>
+            <div class="modal-divider"></div>
+            <div class="modal-row" style="align-items:center;">
+                <span style="color:var(--text-mute)">목표치</span>
+                <input type="number" v-model="targetGoal" class="modal-input" @change="saveConfig">
+            </div>
+            <div class="modal-row"><span style="color:var(--text-mute)">성취율</span><strong style="color:var(--accent)">{{ stats.percent }}%</strong></div>
+        </div>
+    </div>
+    
+    <div v-if="showAlert" class="toast-alert" :class="[alertType, { 'show': showAlert }]">
+        <i class="ph alert-icon" :class="alertType === 'alert-success' ? 'ph-check-circle' : 'ph-x-circle'"></i>
+        <span>{{ alertMessage }}</span>
+    </div>
+    
+    <input type="file" ref="fileInput" @change="handleImportAll" style="display:none" accept=".vel, .txt">
+</div>
+
+<script>
+    const { createApp, ref, computed, nextTick, onMounted, watch } = Vue;
+
+    // --- Utility Functions ---
+    const utf8_to_b64 = (str) => {
+        try { return btoa(unescape(encodeURIComponent(str))); } 
+        catch (e) { return btoa(str); }
+    };
+    const b64_to_utf8 = (str) => {
+        try { return decodeURIComponent(escape(atob(str))); } 
+        catch (e) { return atob(str); }
+    };
+    const formatDate = (dateString) => {
+        if (!dateString) return '알 수 없음';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }) + ' ' +
+               date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+    };
+    // --- End Utility Functions ---
+    
+    // Custom directive to focus the input field
+    const vFocus = { mounted: (el) => el.focus() };
+
+    // --- Component Definitions ---
+    const NodeRow = {
+        name: 'NodeRow', props: ['node'],
+        template: `
+            <div class="node-row" :class="{ active: $root.activeId === node.id }" @click.stop="$root.selectNode(node.id)" @dblclick.stop="$root.startEdit(node.id)">
+                <span style="width:20px; display:flex; justify-content:center;" @click.stop="$root.toggleNode(node.id)">
+                    <i class="ph" v-if="node.type==='folder'" :class="node.closed ? 'ph-caret-right' : 'ph-caret-down'" style="font-size:12px; opacity:0.7;"></i>
+                </span>
+                <i class="ph" :class="node.type==='folder' ? (node.closed?'ph-folder':'ph-folder-open') : 'ph-file-text'" :style="{color: node.type==='folder'?'#F59E0B':'inherit'}" style="font-size:18px; margin-right:8px;"></i>
+                <div v-if="$root.editingId !== node.id" style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ node.title }}</div>
+                <input v-else v-model="node.title" class="node-input" @blur="$root.endEdit" @keydown.enter="$root.endEdit" @click.stop v-focus>
+                <div class="node-actions" v-if="$root.editingId !== node.id"><i class="ph ph-trash" @click.stop="$root.deleteNode(node.id)" style="padding:4px; cursor:pointer;" title="삭제"></i></div>
+            </div>
+        `, directives: { focus: vFocus }
+    };
+
+    const SortableTree = {
+        name: 'SortableTree', components: { NodeRow }, props: ['items', 'allNodes', 'parentId'], emits: ['item-drop'],
+        setup(props, { emit }) {
+            const listRef = ref(null);
+            onMounted(() => {
+                if(listRef.value) new Sortable(listRef.value, { 
+                    group: 'nested', animation: 150, fallbackOnBody: true, swapThreshold: 0.65, 
+                    onEnd: (evt) => {
+                        const itemId = evt.item.dataset.id; 
+                        const newParentId = evt.to.dataset.pid === 'root' ? null : evt.to.dataset.pid; 
+                        emit('item-drop', { itemId, newParentId, newIndex: evt.newIndex });
+                    }
+                });
+            });
+            return { listRef };
+        },
+        template: `<ul ref="listRef" :data-pid="parentId" class="tree-list"><li v-for="node in items" :key="node.id" :data-id="node.id"><node-row :node="node"></node-row><sortable-tree v-if="node.type === 'folder' && !node.closed" :items="allNodes.filter(n => n.parent === node.id)" :all-nodes="allNodes" :parent-id="node.id" @item-drop="$emit('item-drop', $event)"></sortable-tree></li></ul>`
+    };
+    // --- End Component Definitions ---
+
+    const app = createApp({
+        components: { SortableTree },
+        directives: { focus: vFocus },
+        setup() {
+            // --- State Management ---
+            const currentView = ref('manager'); 
+            const projects = ref({}); 
+            const currentProjectId = ref(null);
+            const editingProjectId = ref(null); 
+
+            // Editor States
+            const activeId = ref(null); 
+            const editingId = ref(null);
+            const sidebarOpen = ref(true); 
+            const theme = ref('light'); 
+            const mobileView = ref(false);
+            const editorRef = ref(null); 
+            const fileInput = ref(null);
+            const showStats = ref(false); 
+            const targetGoal = ref(5000);
+            const typewriterMode = ref(false);
+            
+            // 신규 상태: 폰트 활성화 여부
+            const isCustomFontActive = ref(false);
+            
+            // Alert Modal States
+            const showAlert = ref(false);
+            const alertMessage = ref('');
+            const alertType = ref('alert-success');
+
+            // --- Computed Properties ---
+            const currentProject = computed(() => currentProjectId.value ? projects.value[currentProjectId.value] : null);
+            const rootNodes = computed(() => currentProject.value ? currentProject.value.nodes.filter(n => !n.parent) : []);
+            const activeNode = computed(() => currentProject.value ? currentProject.value.nodes.find(n => n.id === activeId.value) : null);
+            
+            // 🔥 최적화: 노드 ID를 키로 하는 맵 생성 (O(1) 검색을 위해)
+            const nodeMap = computed(() => {
+                const map = {};
+                if (currentProject.value) {
+                    currentProject.value.nodes.forEach(node => {
+                        map[node.id] = node;
+                    });
+                }
+                return map;
+            });
+
+            // 🔥 최적화된 breadcrumbs 계산 로직
+            const breadcrumbs = computed(() => {
+                if (!activeNode.value || !currentProject.value) return [];
+                let path = [];
+                let curr = activeNode.value;
+                while(curr) {
+                    path.unshift({ id: curr.id, title: curr.title, type: curr.type });
+                    if(!curr.parent) break;
+                    curr = nodeMap.value[curr.parent]; // O(1) 검색
+                }
+                return path;
+            });
+            
+            // 🔥 최적화: 폴더 뷰를 위한 자식 노드 목록 캐싱
+            const activeChildren = computed(() => {
+                if (activeNode.value && activeNode.value.type === 'folder') {
+                    return currentProject.value.nodes.filter(n => n.parent === activeNode.value.id);
+                }
+                return [];
+            });
+
+
+            const stats = computed(() => {
+                const txt = activeNode.value?.content || '';
+                const total = txt.length;
+                const percent = targetGoal.value > 0 ? Math.floor((total / targetGoal.value) * 100) : 100;
+                return { total, noSpace: txt.replace(/\s/g, '').length, words: txt.trim()?txt.trim().split(/\s+/).length:0, percent };
+            });
+            
+            // --- Alert Logic (Toast Style) ---
+            const showInternalAlert = (message, type = 'success') => {
+                clearTimeout(window._at);
+                alertMessage.value = message;
+                alertType.value = type === 'success' ? 'alert-success' : 'alert-error';
+                showAlert.value = true;
+                
+                nextTick(() => {
+                    const toast = document.querySelector('.toast-alert');
+                    if (toast) toast.classList.add('show');
+                });
+                
+                window._at = setTimeout(() => {
+                    const toast = document.querySelector('.toast-alert');
+                    if (toast) toast.classList.remove('show');
+                    
+                    setTimeout(() => {
+                        showAlert.value = false;
+                    }, 300); 
+                }, 3000);
+            };
+
+            // --- Data Management (Core) ---
+            const PROJECT_KEY = 'ns318_projects';
+            const CONFIG_KEY = 'ns318_global_cfg';
+
+            
+            // 폰트 클래스 적용 로직
+            const applyFontClass = () => {
+                const body = document.body;
+                if (isCustomFontActive.value) {
+                    body.classList.add('custom-font-active');
+                } else {
+                    body.classList.remove('custom-font-active');
+                }
+            };
+
+            const loadAllData = () => {
+                const p = localStorage.getItem(PROJECT_KEY); 
+                if(p) projects.value = JSON.parse(p);
+                
+                const c = localStorage.getItem(CONFIG_KEY);
+                if(c) { 
+                    const cfg = JSON.parse(c); 
+                    theme.value = cfg.theme || 'light'; 
+                    // 폰트 상태 로드 및 적용
+                    isCustomFontActive.value = cfg.isCustomFontActive || false;
+                }
+                applyTheme();
+                applyFontClass(); 
+            };
+
+            const saveData = () => { 
+                if (currentProjectId.value) {
+                    projects.value[currentProjectId.value].updatedAt = new Date().toISOString();
+                }
+                localStorage.setItem(PROJECT_KEY, JSON.stringify(projects.value)); 
+            };
+            
+            // 전역 설정을 저장할 때 폰트 상태도 함께 저장
+            const saveConfig = () => { 
+                localStorage.setItem(CONFIG_KEY, JSON.stringify({ 
+                    theme: theme.value, 
+                    isCustomFontActive: isCustomFontActive.value 
+                }));
+                if (currentProject.value) {
+                     currentProject.value.config = { target: targetGoal.value, typewriter: typewriterMode.value };
+                     saveData();
+                }
+            }; 
+            
+            // 폰트 토글 기능
+            const toggleRidibatangFont = () => {
+                isCustomFontActive.value = !isCustomFontActive.value;
+                applyFontClass();
+                saveConfig();
+                showInternalAlert(isCustomFontActive.value ? '글꼴이 리디바탕으로 변경되었습니다.' : '글꼴이 시스템 기본 폰트로 복원되었습니다.');
+            };
+
+            const createProject = () => {
+                const title = prompt('새 프로젝트의 제목을 입력하세요:', '새 소설 프로젝트');
+                if (title) {
+                    const newId = Date.now().toString(36);
+                    projects.value[newId] = {
+                        id: newId,
+                        title: title,
+                        updatedAt: new Date().toISOString(),
+                        // 초기 구조
+                        nodes: [
+                            { id: 'f1', type: 'folder', title: '설정집', parent: null, closed: false, content: '', synopsis: '세계관, 캐릭터 등 소설 배경 설정을 저장하는 공간입니다.' },
+                            { id: 'c1', type: 'chapter', title: '세계관', parent: 'f1', content: '# 세계관 설정\n\n- 주요 대륙, 나라, 마법 시스템 등을 정리하세요.', synopsis: '세계관 및 주요 배경 요약' },
+                            { id: 'c2', type: 'chapter', title: '캐릭터', parent: 'f1', content: '# 주요 등장인물\n\n- 주인공, 주변 인물들의 인적 사항, 특징 등을 정리하세요.', synopsis: '주요 등장인물 요약' },
+                            { id: 'f2', type: 'folder', title: '본문', parent: null, closed: false, content: '', synopsis: '실제 소설 원고를 작성하는 폴더입니다.' },
+                            { id: 'c3', type: 'chapter', title: '프롤로그', parent: 'f2', content: '', synopsis: '프롤로그 요약' },
+                            { id: 'c4', type: 'chapter', title: '제 1화', parent: 'f2', content: '', synopsis: '1화 내용 요약' },
+                            { id: 'c5', type: 'chapter', title: '제 2화', parent: 'f2', content: '', synopsis: '2화 내용 요약' },
+                            { id: 'c6', type: 'chapter', title: '메모', parent: null, content: '', synopsis: '' }
+                        ],
+                        config: { target: 5000, typewriter: false }
+                    };
+                    saveData();
+                    // 첫 챕터인 '세계관'으로 이동
+                    loadProject(newId, 'c1');
+                    showInternalAlert(`'${title}' 프로젝트가 생성되었습니다.`);
+                }
+            };
+            
+            const deleteProject = (id) => {
+                 if(confirm(`정말로 프로젝트 "${projects.value[id].title}"를 삭제하시겠습니까? (이 작업은 되돌릴 수 없습니다)`)) {
+                    const title = projects.value[id].title;
+                    delete projects.value[id];
+                    saveData();
+                    if (currentProjectId.value === id) {
+                        currentProjectId.value = null;
+                        currentView.value = 'manager';
+                    }
+                    showInternalAlert(`'${title}' 프로젝트가 삭제되었습니다.`);
+                 }
+            };
+
+            const loadProject = (id, defaultNodeId = null) => {
+                saveData(); 
+                const project = projects.value[id];
+                if (!project) return;
+                currentProjectId.value = id;
+                
+                // defaultNodeId가 있으면 그걸 사용하고, 없으면 첫 번째 챕터를 찾거나 노드 0을 사용
+                let initialActiveId = defaultNodeId || (project.nodes.length > 0 ? project.nodes.find(n=>n.type==='chapter')?.id || project.nodes[0].id : null);
+                activeId.value = initialActiveId;
+
+                targetGoal.value = project.config.target || 5000;
+                typewriterMode.value = project.config.typewriter || false;
+                currentView.value = 'editor';
+                nextTick(() => { autoResize(); updateTypewriter(false); });
+            };
+            
+            const handleEditorExit = () => {
+                saveData(); 
+                showInternalAlert(`'${currentProject.value?.title || '현재 프로젝트'}'가 저장되었습니다.`);
+                currentView.value = 'manager';
+            };
+
+            const startEditProject = (id) => {
+                 currentProjectId.value = null; 
+                 editingProjectId.value = id;
+            };
+            const endEditProject = () => {
+                if (editingProjectId.value) {
+                    if (!projects.value[editingProjectId.value].title.trim()) {
+                        showInternalAlert('프로젝트 제목은 비워둘 수 없습니다.', 'error');
+                        projects.value[editingProjectId.value].title = '제목 없음';
+                    } else {
+                         showInternalAlert(`'${projects.value[editingProjectId.value].title}'로 수정되었습니다.`);
+                    }
+                    saveData();
+                    editingProjectId.value = null;
+                }
+            };
+            
+            // --- Export/Import Logic ---
+
+            const exportAllData = async () => {
+                saveData(); 
+                const allData = { 
+                    version: "3.27_Full", 
+                    timestamp: new Date().toISOString(), 
+                    projects: projects.value,
+                    globalConfig: { theme: theme.value, isCustomFontActive: isCustomFontActive.value } // 설정에 폰트 상태 포함
+                };
+                const rawJson = JSON.stringify(allData);
+                const encodedData = utf8_to_b64(rawJson); 
+                const blob = new Blob([encodedData], {type: 'text/plain;charset=utf-8'});
+
+                const defaultFileName = `Story_All_Projects_${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}.vel`;
+                
+                try {
+                    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = defaultFileName; a.click();
+                    showInternalAlert(`전체 프로젝트 데이터가 백업되었습니다.`);
+                } catch (err) {
+                    showInternalAlert('파일 다운로드 실패. 브라우저 설정을 확인하세요.', 'error');
+                }
+            };
+
+            let importMode = 'all'; 
+            const triggerImportAll = () => { importMode = 'all'; fileInput.value.click(); };
+
+            const handleImportAll = (e) => {
+                const f = e.target.files[0];
+                if (!f) return;
+                const r = new FileReader();
+                r.onload = (evt) => {
+                    try {
+                        const rawContent = evt.target.result; 
+                        const rawJson = b64_to_utf8(rawContent); 
+                        const data = JSON.parse(rawJson);
+                        
+                        if (data.projects && data.version === "3.27_Full" && importMode === 'all') {
+                            if (confirm(`전체 프로젝트 데이터를 불러와 현재 브라우저의 데이터를 모두 덮어쓰시겠습니까?`)) {
+                                projects.value = data.projects;
+                                theme.value = data.globalConfig.theme || 'light';
+                                isCustomFontActive.value = data.globalConfig.isCustomFontActive || false; // 폰트 상태 복원
+                                applyTheme();
+                                applyFontClass();
+                                saveData(); 
+                                showInternalAlert('전체 프로젝트 불러오기 완료!');
+                                currentView.value = 'manager';
+                            }
+                        } else if (data.nodes && data.title && data.version.includes("3.27")) {
+                            const newId = Date.now().toString(36);
+                            projects.value[newId] = {
+                                id: newId,
+                                title: data.title + ' (불러옴)',
+                                updatedAt: new Date().toISOString(),
+                                nodes: data.nodes,
+                                config: data.config || { target: 5000, typewriter: false }
+                            };
+                            saveData();
+                            showInternalAlert(`프로젝트 '${data.title}' 불러오기 완료!`);
+                            currentView.value = 'manager';
+                        } else {
+                            showInternalAlert('잘못된 파일 형식입니다. Novel Studio 백업 파일인지 확인하세요.', 'error');
+                        }
+                    } catch (err) {
+                        console.error('불러오기 오류:', err);
+                        showInternalAlert('파일을 읽거나 디코딩하는 중 오류가 발생했습니다.', 'error');
+                    }
+                };
+                r.readAsText(f); 
+                e.target.value = '';
+            };
+
+
+            // --- Editor UI/Utility Logic ---
+            
+            const updateTypewriter = (smooth = true) => {
+                if(!typewriterMode.value || !editorRef.value) return;
+                const ta = editorRef.value;
+                const mirror = document.getElementById('caret-mirror');
+                const workspace = document.getElementById('workspace-el');
+                
+                mirror.className = mobileView.value ? 'mobile' : '';
+                const subVal = ta.value.substring(0, ta.selectionStart);
+                mirror.textContent = subVal;
+                const span = document.createElement('span'); span.textContent = '.'; mirror.appendChild(span);
+                
+                const paddingTop = mobileView.value ? 40 : 60;
+                const wrapperTop = 40;
+                const cursorY = span.offsetTop + paddingTop + wrapperTop;
+                const viewportH = workspace.clientHeight;
+                const lineHeight = 18 * 1.8;
+                
+                const targetScroll = cursorY - (viewportH / 2) + (lineHeight / 2);
+                workspace.scrollTo({ top: targetScroll, behavior: smooth ? 'smooth' : 'auto' });
+            };
+
+            const autoResize = () => { if(editorRef.value) { editorRef.value.style.height = 'auto'; editorRef.value.style.height = editorRef.value.scrollHeight + 'px'; } };
+            const handleInput = () => { autoResize(); updateTypewriter(false); if(window._st) clearTimeout(window._st); window._st = setTimeout(saveData, 1000); };
+            const handleNav = () => { updateTypewriter(true); };
+            
+            // 🔥 경고 해결: focusEditor 함수를 명시적으로 정의
+            const focusEditor = () => { 
+                if (editorRef.value) {
+                    editorRef.value.focus();
+                }
+            };
+            
+            watch(activeId, () => nextTick(() => { autoResize(); updateTypewriter(false); }));
+            watch(mobileView, () => nextTick(() => updateTypewriter(false)));
+            watch(currentProjectId, () => { activeId.value = null; }); 
+
+            const toggleTheme = () => { theme.value = theme.value==='light'?'dark':'light'; applyTheme(); saveConfig(); };
+            const applyTheme = () => document.documentElement.setAttribute('data-theme', theme.value);
+            const toggleMobile = () => { mobileView.value = !mobileView.value; nextTick(autoResize); };
+            const toggleTypewriter = () => { typewriterMode.value = !typewriterMode.value; saveConfig(); nextTick(() => updateTypewriter(true)); };
+
+            const onDrop = ({ itemId, newParentId, newIndex }) => {
+                if (!currentProject.value) return;
+                const nodes = currentProject.value.nodes;
+                const node = nodes.find(n => n.id === itemId); if (!node) return;
+                
+                nodes.splice(nodes.indexOf(node), 1); node.parent = newParentId;
+                const siblings = nodes.filter(n => n.parent === newParentId);
+                let insertIdx = nodes.length;
+                if (siblings.length > 0) insertIdx = newIndex >= siblings.length ? nodes.indexOf(siblings[siblings.length - 1]) + 1 : nodes.indexOf(siblings[newIndex]);
+                nodes.splice(insertIdx, 0, node);
+                
+                if(newParentId) { const p = nodes.find(n => n.id === newParentId); if(p) p.closed = false; }
+                saveData();
+            };
+            
+            onMounted(() => { 
+                loadAllData();
+                // 🔥 최적화: 브라우저 종료 직전 저장 보장
+                window.addEventListener('beforeunload', saveData); 
+            });
+            
+            const selectNode = (id) => { if(!editingId.value) activeId.value = id; };
+            const toggleNode = (id) => { const n = currentProject.value.nodes.find(x=>x.id===id); if(n) n.closed=!n.closed; saveData(); };
+            const startEdit = (id) => editingId.value = id; 
+            const endEdit = () => { 
+                if (editingId.value) {
+                    const node = currentProject.value.nodes.find(n => n.id === editingId.value);
+                    if (node && !node.title.trim()) {
+                        showInternalAlert('노드 제목은 비워둘 수 없습니다.', 'error');
+                        node.title = '제목 없음'; // 기본값 설정
+                    }
+                }
+                editingId.value = null; 
+                saveData(); 
+            };
+            const addNode = (type) => { 
+                const nodes = currentProject.value.nodes;
+                const cur = nodes.find(n => n.id === activeId.value); let parent = cur ? (cur.type==='folder'?cur.id:cur.parent) : null;
+                const n = { id: Date.now().toString(36), type, title: type==='folder'?'새 폴더':'새 챕터', parent, content:'', synopsis: '', closed:false };
+                nodes.push(n); if(parent) { const p=nodes.find(x=>x.id===parent); if(p) p.closed = false; }
+                activeId.value=n.id; editingId.value=n.id; saveData();
+            };
+            const deleteNode = (id) => { 
+                if(!currentProject.value) return;
+                if(confirm('삭제하시겠습니까? (하위 노드도 모두 삭제됩니다)')) { 
+                    const nodes = currentProject.value.nodes;
+                    const s = new Set([id]); 
+                    const f=(p)=>nodes.filter(x=>x.parent===p).forEach(c=>{s.add(c.id);if(c.type==='folder')f(c.id)}); 
+                    f(id); 
+                    currentProject.value.nodes=nodes.filter(x=>!s.has(x.id)); 
+                    if(s.has(activeId.value)) activeId.value=null; 
+                    saveData(); 
+                } 
+            };
+            
+            return {
+                // Project Management State/Methods
+                currentView, projects, currentProject, currentProjectId, editingProjectId,
+                loadProject, createProject, deleteProject, exportAllData, triggerImportAll, handleImportAll,
+                formatDate, fileInput, startEditProject, endEditProject, handleEditorExit, showInternalAlert,
+
+                // Editor States/Methods
+                activeId, editingId, sidebarOpen, theme, mobileView, typewriterMode,
+                activeNode, breadcrumbs, stats, showStats, targetGoal,
+                editorRef, saveData, handleInput, handleNav, 
+                selectNode, toggleNode, startEdit, endEdit, addNode, deleteNode,
+                onDrop, toggleTheme, toggleMobile, toggleTypewriter, 
+                rootNodes, saveConfig,
+                
+                // 🔥 명시적으로 반환된 focusEditor
+                focusEditor,
+
+                // 최적화된 Computed
+                activeChildren, // 폴더의 자식 노드 목록
+
+                // 폰트 기능 노출
+                isCustomFontActive, toggleRidibatangFont,
+                
+                // Alert States
+                showAlert, alertMessage, alertType
+            };
+        }
+    });
+    
+    app.component('sortable-tree', SortableTree); 
+    app.mount('#app');
+</script>
+</body>
+</html>
