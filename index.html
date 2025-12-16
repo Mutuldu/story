@@ -279,7 +279,6 @@
         .footer-btn { 
             background: none; border: none; cursor: pointer; 
             width: 40px; height: 32px; border-radius: 6px; 
-            display: flex; align-items: center; justify-content: center; 
             color: var(--text-mute); 
         }
         .footer-btn:hover { background: var(--bg-app); color: var(--text-main); }
@@ -315,8 +314,16 @@
         .crumb-divider { opacity: 0.4; }
         .crumb-current { font-weight: 800; color: var(--text-main); cursor: default; pointer-events: none; }
         .workspace { flex: 1; overflow-y: auto; display: flex; justify-content: center; align-items: flex-start; padding-bottom: 0; position: relative; }
-        .paper-wrapper { width: 100%; max-width: 800px; padding: 40px 0 100px; display: flex; justify-content: center; transition: padding-bottom 0.3s; position: relative; z-index: 5; }
+        
+        /* 🌟 일반 모드 하단 패딩을 50vh로 늘려 여유 공간 확보 (이전 수정 유지) */
+        .paper-wrapper { 
+            width: 100%; max-width: 800px; 
+            padding: 40px 0 50vh; 
+            display: flex; justify-content: center; transition: padding-bottom 0.3s; 
+            position: relative; z-index: 5; 
+        }
         .paper-wrapper.typewriter { padding-bottom: 150vh; }
+        
         .paper { width: 100%; background: var(--bg-paper); border: 1px solid var(--border); padding: 60px 80px; min-height: 30vh; height: fit-content; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); position: relative; }
         .paper.mobile { max-width: 480px; padding: 40px 24px; }
         textarea.editor { 
@@ -330,7 +337,7 @@
             font-size: 18px; line-height: 1.8; padding: 60px 80px; width: 800px; 
         }
         #caret-mirror.mobile { width: 480px; padding: 40px 24px; }
-        .typewriter-overlay { position: fixed; bottom: 0; left: 50%; transform: translateX(calc(-50% + var(--sidebar-offset, 0px))); pointer-events: none; z-index: 20; display: block; opacity: 1; transition: filter 0.3s, opacity 0.3s, width 0.3s, margin-bottom 0.3s; width: 947px; margin-bottom: 211px; }
+        .typewriter-overlay { position: fixed; bottom: 0; left: 50%; transform: translateX(calc(-50% + var(--sidebar-offset, 0px))); pointer-events: none; z-index: 20; display: block; opacity: 1; transition: filter 0.3s, opacity 0.3s, width 0.3s, margin-bottom 0.3s; width: 947px; margin-bottom: 70px; }
         [data-theme="dark"] .typewriter-overlay { filter: invert(1) grayscale(1) brightness(0.2); }
         aside.closed ~ main .typewriter-overlay { --sidebar-offset: 0px; }
         aside:not(.closed) ~ main .typewriter-overlay { --sidebar-offset: 130px; }
@@ -897,7 +904,7 @@
                 const encodedData = utf8_to_b64(rawJson); 
                 const blob = new Blob([encodedData], {type: 'text/plain;charset=utf-8'});
 
-                const defaultFileName = `Story_All_Projects_${new Date()}.vel`;
+                const defaultFileName = `Story_Projects_${new Date()}.vel`;
                 
                 try {
                     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = defaultFileName; a.click();
@@ -958,8 +965,9 @@
 
             // --- Editor UI/Utility Logic ---
             
+            // 🌟 updateTypewriter 함수 최종 재수정: ON/OFF 모두 강제 스크롤 위치를 제어합니다.
             const updateTypewriter = (smooth = true) => {
-                if(!typewriterMode.value || !editorRef.value) return;
+                if(!editorRef.value) return; 
                 const ta = editorRef.value;
                 const mirror = document.getElementById('caret-mirror');
                 const workspace = document.getElementById('workspace-el');
@@ -975,9 +983,18 @@
                 const viewportH = workspace.clientHeight;
                 const lineHeight = 18 * 1.8;
                 
-                const targetScroll = cursorY - (viewportH / 2) + (lineHeight / 2);
-                workspace.scrollTo({ top: targetScroll, behavior: smooth ? 'smooth' : 'auto' });
+                // 스크롤 포지션 조정 기준 (화면 상단에서 몇 % 지점에 커서를 둘지)
+                // 타자기 모드 ON: 50% (화면 중앙)
+                // 타자기 모드 OFF: 90% (화면 상단 90% 지점에 커서를 둠 = 하단 10% 고정)
+                const scrollAnchorRatio = typewriterMode.value ? 0.6 : 1; 
+                
+                const viewportAnchor = viewportH * scrollAnchorRatio;
+                // 목표 스크롤 위치: 커서 위치 - (뷰포트 앵커 위치) + (줄 높이의 절반)
+                const targetScrollY = cursorY - viewportAnchor + (lineHeight / 2);
+
+                workspace.scrollTo({ top: targetScrollY, behavior: smooth ? 'smooth' : 'auto' });
             };
+
 
             const autoResize = () => { if(editorRef.value) { editorRef.value.style.height = 'auto'; editorRef.value.style.height = editorRef.value.scrollHeight + 'px'; } };
             const handleInput = () => { autoResize(); updateTypewriter(false); if(window._st) clearTimeout(window._st); window._st = setTimeout(saveData, 1000); };
