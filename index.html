@@ -897,7 +897,7 @@
                 const encodedData = utf8_to_b64(rawJson); 
                 const blob = new Blob([encodedData], {type: 'text/plain;charset=utf-8'});
 
-                const defaultFileName = `Story_All_Projects_${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}.vel`;
+                const defaultFileName = `Story_All_Projects_${new Date()}.vel`;
                 
                 try {
                     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = defaultFileName; a.click();
