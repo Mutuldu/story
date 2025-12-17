@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>이야기 스튜디오 v1.7 (No Calendar & Sync Icons)</title>
+    <title>이야기 스튜디오 v1.7 (Auto Indent)</title>
     
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
@@ -81,7 +81,7 @@
         .icon-picker-popover { 
             position: fixed; background: var(--bg-paper); border: 1px solid var(--border); 
             box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-radius: 6px; padding: 8px; 
-            display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; /* 5열 그리드 */
+            display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px;
             z-index: 9999; 
         }
         .icon-option { width: 32px; height: 32px; border: none; background: none; cursor: pointer; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: var(--text-mute); transition: 0.2s; }
@@ -105,8 +105,28 @@
         .paper-wrapper.typewriter { padding-bottom: 150vh; }
         .paper { width: 100%; background: var(--bg-paper); border: 1px solid var(--border); padding: 60px 80px; min-height: 90vh; height: fit-content; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); position: relative; }
         .paper.mobile { max-width: 555px; padding: 35px 30px; }
-        textarea.editor { width: 100%; min-height: 600px; border: none; resize: none; overflow: hidden; background: transparent; font-family: inherit; font-size: 18px; line-height: 1.8; color: var(--text-main); display: block; padding: 0; margin: 0; position: relative; z-index: 2; }
-        #caret-mirror { position: absolute; top: -9999px; left: -9999px; visibility: hidden; white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; font-family: inherit; font-size: 18px; line-height: 1.8; padding: 60px 80px; width: 800px; }
+        
+        /* * [수정] text-indent: 1em 추가 
+         * - 문단의 첫 줄(맨 윗줄)을 자동으로 들여쓰기 합니다.
+         */
+        textarea.editor { 
+            width: 100%; min-height: 600px; border: none; resize: none; overflow: hidden; 
+            background: transparent; font-family: inherit; font-size: 18px; line-height: 2; 
+            color: var(--text-main); display: block; padding: 0; margin: 0; 
+            position: relative; z-index: 2; 
+            text-indent: 1em; /* 여기 추가됨 */
+        }
+        
+        /* * [수정] text-indent: 1em 추가
+         * - Typewriter 모드 계산용 미러 엘리먼트에도 동일하게 적용해야 스크롤이 튀지 않습니다.
+         */
+        #caret-mirror { 
+            position: absolute; top: -9999px; left: -9999px; visibility: hidden; 
+            white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; 
+            font-family: inherit; font-size: 18px; line-height: 1.8; 
+            padding: 60px 80px; width: 800px; 
+            text-indent: 1em; /* 여기 추가됨 */
+        }
         
         .corkboard { width: 100%; padding: 40px; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 24px; align-content: flex-start; }
         .postit { background: var(--postit-bg); color: var(--postit-text); border: 1px solid var(--postit-border); height: 350px; display: flex; flex-direction: column; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); transition: 0.2s; }
@@ -156,7 +176,6 @@
         <button class="icon-option" style="color:#F59E0B" @click="changeIcon('flag-yellow')" title="노랑 플래그"><i class="ph ph-flag-banner" style="font-weight:fill;"></i></button>
         <button class="icon-option" style="color:#10B981" @click="changeIcon('flag-green')" title="초록 플래그"><i class="ph ph-flag-banner" style="font-weight:fill;"></i></button>
         <button class="icon-option" style="color:#3B82F6" @click="changeIcon('flag-blue')" title="파랑 플래그"><i class="ph ph-flag-banner" style="font-weight:fill;"></i></button>
-        
         <button class="icon-option" style="color:#8B5CF6" @click="changeIcon('char')" title="인물/캐릭터"><i class="ph ph-user"></i></button>
         <button class="icon-option" style="color:#EC4899" @click="changeIcon('loc')" title="장소/배경"><i class="ph ph-map-pin"></i></button>
         <button class="icon-option" style="color:#F59E0B" @click="changeIcon('item')" title="중요 아이템"><i class="ph ph-key"></i></button>
@@ -245,7 +264,17 @@
             <div class="workspace" id="workspace-el" @click="focusEditor">
                 <div v-if="activeNode && activeNode.type === 'chapter'" class="paper-wrapper" :class="{typewriter: typewriterMode}">
                     <div class="paper" :class="{mobile: mobileView}">
-                        <textarea class="editor" v-model="activeNode.content" placeholder="이곳에 글을 작성하세요..." ref="editorRef" @input="handleMainInput" @click="handleNav" @keyup="handleNav" spellcheck="false"></textarea>
+                        <textarea 
+                            class="editor" 
+                            v-model="activeNode.content" 
+                            placeholder="이곳에 글을 작성하세요..." 
+                            ref="editorRef" 
+                            @input="handleMainInput" 
+                            @click="handleNav" 
+                            @keyup="handleNav" 
+                            @keydown.enter.prevent="handleEnter"
+                            spellcheck="false">
+                        </textarea>
                     </div>
                 </div>
                 <div v-else-if="activeNode && activeNode.type === 'folder'" class="corkboard">
@@ -456,10 +485,7 @@
             };
 
             // --- Breadcrumb & Helper for Icons ---
-            // NodeRow와 동일한 로직을 사용하여 브레드크럼에도 적용
             const getIconProperty = (item) => {
-                // item은 breadcrumbs 루프에서 오거나, 실제 node 객체일 수 있음.
-                // 안전하게 속성 접근
                 const node = nodeMap.value[item.id] || item;
                 const type = node.iconType || 'default';
                 const isFolder = node.type === 'folder';
@@ -501,6 +527,31 @@
             const handlePostitInput = (node) => { node.updatedAt = new Date().toISOString(); debouncedSave(); };
             const handleNav = () => { updateTypewriter(true); };
             const focusEditor = () => { if (editorRef.value) editorRef.value.focus(); };
+
+            // [추가된 함수] 엔터 키 입력 시 자동 들여쓰기 처리
+            const handleEnter = (e) => {
+                const ta = e.target;
+                const start = ta.selectionStart;
+                const end = ta.selectionEnd;
+                const val = activeNode.value.content || '';
+
+                // 들여쓰기 문자: 전각 공백(ㄱ+한자+1) -> '\u3000'
+                // 일반 공백을 원하면 '  '로 바꾸세요.
+                const indent = '\u3000'; 
+                
+                // 현재 커서 위치에 [개행 + 들여쓰기] 삽입
+                const newVal = val.substring(0, start) + '\n' + indent + val.substring(end);
+                
+                activeNode.value.content = newVal;
+
+                // Vue 데이터 반영 후 커서 위치 조정 및 높이 계산
+                nextTick(() => {
+                    ta.selectionStart = ta.selectionEnd = start + 1 + indent.length;
+                    autoResize();
+                    updateTypewriter(true);
+                    debouncedSave();
+                });
+            };
 
             // CRUD & Tree
             const editingProjectId = ref(null);
@@ -554,7 +605,8 @@
             return {
                 currentView, projects, currentProject, currentProjectId, editingProjectId, activeId, editingId, sidebarOpen, theme, mobileView, typewriterMode, activeNode, rootNodes, activeChildren, breadcrumbs, stats, showStats, targetGoal, editorRef, fileInput, showAlert, alertMessage, alertType, isCustomFontActive,
                 loadProject, createProject, deleteProject, startEditProject, endEditProject, exportAllData, triggerImportAll, handleImportAll, selectNode, toggleNode, startEdit, endEdit, addNode, deleteNode, onDrop, toggleTheme, toggleMobile, toggleTypewriter, toggleRidibatangFont, handleEditorExit, handleMainInput, handlePostitInput, handleNav, focusEditor, saveConfig, formatDate, formatPostitDate,
-                pickerOpen, pickerPos, openPicker, changeIcon, getIconProperty
+                pickerOpen, pickerPos, openPicker, changeIcon, getIconProperty,
+                handleEnter // [추가] 엔터키 처리 함수 리턴에 포함
             };
         }
     });
