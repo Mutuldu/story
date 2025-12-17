@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>이야기 스튜디오 v1.9 (Paragraph Mode)</title>
+    <title>이야기 스튜디오 v1.1</title>
     
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
@@ -77,7 +77,13 @@
         
         .node-icon-wrapper { width: 24px; display: flex; justify-content: center; cursor: pointer; border-radius: 4px; margin-right: 6px; }
         .node-icon-wrapper:hover { background: rgba(0,0,0,0.05); }
-        .icon-picker-popover { position: fixed; background: var(--bg-paper); border: 1px solid var(--border); box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-radius: 6px; padding: 8px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; z-index: 9999; }
+        
+        .icon-picker-popover { 
+            position: fixed; background: var(--bg-paper); border: 1px solid var(--border); 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-radius: 6px; padding: 8px; 
+            display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; /* 5열 그리드 */
+            z-index: 9999; 
+        }
         .icon-option { width: 32px; height: 32px; border: none; background: none; cursor: pointer; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: var(--text-mute); transition: 0.2s; }
         .icon-option:hover { background: var(--active-bg); color: var(--text-main); transform: scale(1.1); }
         
@@ -95,52 +101,13 @@
         .crumb-divider { opacity: 0.4; }
         .workspace { flex: 1; overflow-y: auto; display: flex; justify-content: center; align-items: flex-start; padding-bottom: 0; position: relative; }
         
-        /* ★★★ REVISED LAYOUT & INDENTATION CSS ★★★ */
-        .paper-wrapper { 
-            width: 100%; 
-            max-width: 880px; /* 요청하신 폭 800px */
-            padding: 40px 0 10vh; /* 요청하신 패딩 */
-            display: flex; 
-            justify-content: center; 
-            position: relative; 
-            z-index: 5; 
-            margin: 0 auto;
-        }
+        .paper-wrapper { width: 100%; max-width: 880px; padding: 40px 0 50vh; display: flex; justify-content: center; position: relative; z-index: 5; }
         .paper-wrapper.typewriter { padding-bottom: 150vh; }
+        .paper { width: 100%; background: var(--bg-paper); border: 1px solid var(--border); padding: 60px 80px; min-height: 90vh; height: fit-content; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); position: relative; }
+        .paper.mobile { max-width: 554px; padding: 40px 24px; }
+        textarea.editor { width: 100%; min-height: 600px; border: none; resize: none; overflow: hidden; background: transparent; font-family: inherit; font-size: 18px; line-height: 1.8; color: var(--text-main); display: block; padding: 0; margin: 0; position: relative; z-index: 2; }
+        #caret-mirror { position: absolute; top: -9999px; left: -9999px; visibility: hidden; white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; font-family: inherit; font-size: 18px; line-height: 1.8; padding: 60px 80px; width: 800px; }
         
-        .paper { 
-            width: 100%; 
-            background: var(--bg-paper); 
-            border: 1px solid var(--border); 
-            padding: 60px 80px; 
-            min-height: 90vh; 
-            height: fit-content; 
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); 
-            position: relative; 
-            cursor: text;
-        }
-        .paper.mobile { max-width: 525px; padding: 40px 24px; }
-
-        /* 편집 가능한 Div 스타일 (textarea 대체) */
-        .editor-div {
-            width: 100%;
-            min-height: 600px;
-            border: none;
-            outline: none;
-            font-family: inherit;
-            font-size: 18px;
-            line-height: 1.8;
-            color: var(--text-main);
-            white-space: pre-wrap;
-        }
-        /* ★★★ 핵심: 문단 들여쓰기 ★★★ */
-        .editor-div p {
-            text-indent: 1em; /* 첫 줄 들여쓰기 */
-            margin-top: 0;
-            margin-bottom: 1.2em; /* 문단 간격 */
-            min-height: 1em; /* 빈 줄도 높이 유지 */
-        }
-
         .corkboard { width: 100%; padding: 40px; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 24px; align-content: flex-start; }
         .postit { background: var(--postit-bg); color: var(--postit-text); border: 1px solid var(--postit-border); height: 350px; display: flex; flex-direction: column; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); transition: 0.2s; }
         .postit:hover { transform: translateY(-4px); box-shadow: 0 10px 15px rgba(0,0,0,0.1); z-index: 2; }
@@ -179,6 +146,8 @@
     </style>
 </head>
 <body :class="{'custom-font-active': isCustomFontActive}">
+
+<div id="caret-mirror"></div>
 
 <div id="app">
     <div v-if="pickerOpen" class="icon-picker-popover" :style="{top: pickerPos.y + 'px', left: pickerPos.x + 'px'}">
@@ -265,7 +234,7 @@
                         <template v-for="(item, index) in breadcrumbs" :key="index">
                             <span v-if="index > 0" class="crumb-divider"><i class="ph ph-caret-right"></i></span>
                             <div class="crumb-item" @click="selectNode(item.id)">
-                                <i class="ph" :class="getIconConfig(item).class" :style="{ color: getIconConfig(item).color, fontWeight: getIconConfig(item).weight || 'normal' }" style="font-size:16px;"></i>
+                                <i class="ph" :class="getIconProperty(item).class" :style="{ color: getIconProperty(item).color, fontWeight: getIconProperty(item).weight || 'normal' }" style="font-size:16px;"></i>
                                 <span class="crumb-text" :class="{'crumb-current': index === breadcrumbs.length - 1}">{{ item.title }}</span>
                             </div>
                         </template>
@@ -275,21 +244,14 @@
 
             <div class="workspace" id="workspace-el" @click="focusEditor">
                 <div v-if="activeNode && activeNode.type === 'chapter'" class="paper-wrapper" :class="{typewriter: typewriterMode}">
-                    <div class="paper" :class="{mobile: mobileView}" @click.stop>
-                        <div 
-                            class="editor-div" 
-                            contenteditable="true" 
-                            ref="editorRef" 
-                            @input="handleEditorInput" 
-                            @click="handleNav" 
-                            @keyup="handleNav"
-                        ></div>
+                    <div class="paper" :class="{mobile: mobileView}">
+                        <textarea class="editor" v-model="activeNode.content" placeholder="이곳에 글을 작성하세요..." ref="editorRef" @input="handleMainInput" @click="handleNav" @keyup="handleNav" spellcheck="false"></textarea>
                     </div>
                 </div>
                 <div v-else-if="activeNode && activeNode.type === 'folder'" class="corkboard">
                     <div v-for="child in activeChildren" :key="child.id" class="postit">
                         <div class="postit-head" @click.stop="selectNode(child.id)">
-                            <i class="ph" :class="child.type==='folder'?'ph-folder':'ph-file-text'"></i> {{ child.title }}
+                             <i class="ph" :class="getIconProperty(child).class" :style="{ color: getIconProperty(child).color, marginRight:'4px' }"></i> {{ child.title }}
                         </div>
                         <div class="postit-body">
                             <textarea class="postit-textarea" v-model="child.synopsis" @input="handlePostitInput(child)"></textarea>
@@ -335,24 +297,7 @@
 <script>
     const { createApp, ref, computed, nextTick, onMounted, watch } = Vue;
 
-    const ICON_MAP = {
-        'default': { class: 'ph-file-text', color: '' },
-        'flag-red': { class: 'ph-flag-banner', color: '#EF4444', weight: 'fill' },
-        'flag-yellow': { class: 'ph-flag-banner', color: '#F59E0B', weight: 'fill' },
-        'flag-green': { class: 'ph-flag-banner', color: '#10B981', weight: 'fill' },
-        'flag-blue': { class: 'ph-flag-banner', color: '#3B82F6', weight: 'fill' },
-        'char': { class: 'ph-user', color: '#8B5CF6' },
-        'loc': { class: 'ph-map-pin', color: '#EC4899' },
-        'item': { class: 'ph-key', color: '#F59E0B' },
-        'idea': { class: 'ph-lightbulb', color: '#EAB308' },
-        'fight': { class: 'ph-sword', color: '#64748B' },
-        'love': { class: 'ph-heart', color: '#EF4444', weight: 'fill' },
-        'magic': { class: 'ph-sparkle', color: '#A855F7' },
-        'skull': { class: 'ph-skull', color: '#57534E' },
-        'done': { class: 'ph-check-circle', color: '#10B981', weight: 'fill' },
-        'time': { class: 'ph-clock', color: '' }
-    };
-
+    // --- Utils ---
     const utf8_to_b64 = (str) => { try { return btoa(unescape(encodeURIComponent(str))); } catch (e) { return btoa(str); } };
     const b64_to_utf8 = (str) => { try { return decodeURIComponent(escape(atob(str))); } catch (e) { return atob(str); } };
     const formatDate = (dateString) => {
@@ -367,15 +312,36 @@
     };
     const debounce = (fn, delay) => { let timeout; return (...args) => { clearTimeout(timeout); timeout = setTimeout(() => fn(...args), delay); }; };
 
+    // --- Component: NodeRow ---
     const NodeRow = {
         name: 'NodeRow', props: ['node'], emits: ['icon-click'],
         setup(props) {
             const iconData = computed(() => {
                 const type = props.node.iconType || 'default';
                 const isFolder = props.node.type === 'folder';
+                
                 if (isFolder) return { class: props.node.closed ? 'ph-folder' : 'ph-folder-open', color: '#F59E0B' };
-                return ICON_MAP[type] || ICON_MAP['default'];
+                
+                const map = {
+                    'default': { class: 'ph-file-text', color: '' },
+                    'flag-red': { class: 'ph-flag-banner', color: '#EF4444', weight: 'fill' },
+                    'flag-yellow': { class: 'ph-flag-banner', color: '#F59E0B', weight: 'fill' },
+                    'flag-green': { class: 'ph-flag-banner', color: '#10B981', weight: 'fill' },
+                    'flag-blue': { class: 'ph-flag-banner', color: '#3B82F6', weight: 'fill' },
+                    'char': { class: 'ph-user', color: '#8B5CF6' },
+                    'loc': { class: 'ph-map-pin', color: '#EC4899' },
+                    'item': { class: 'ph-key', color: '#F59E0B' },
+                    'idea': { class: 'ph-lightbulb', color: '#EAB308' },
+                    'fight': { class: 'ph-sword', color: '#64748B' },
+                    'love': { class: 'ph-heart', color: '#EF4444', weight: 'fill' },
+                    'magic': { class: 'ph-sparkle', color: '#A855F7' },
+                    'skull': { class: 'ph-skull', color: '#57534E' },
+                    'done': { class: 'ph-check-circle', color: '#10B981', weight: 'fill' },
+                    'time': { class: 'ph-clock', color: '' }
+                };
+                return map[type] || map['default'];
             });
+
             return { iconData };
         },
         template: `
@@ -426,56 +392,53 @@
         components: { SortableTree },
         directives: { focus: { mounted: (el) => el.focus() } },
         setup() {
+            // UI State
             const currentView = ref('manager'); const sidebarOpen = ref(true); const theme = ref('light'); const isCustomFontActive = ref(false);
             const { showAlert, alertMessage, alertType, showInternalAlert } = useAlert();
             const showStats = ref(false);
+            
+            // Icon Picker State
             const pickerOpen = ref(false);
             const pickerPos = ref({ x: 0, y: 0 });
             const pickingNodeId = ref(null);
+
+            // Data State
             const projects = ref({});
             const currentProjectId = ref(null);
+
             const currentProject = computed(() => currentProjectId.value ? projects.value[currentProjectId.value] : null);
             
             const saveData = () => { if (currentProjectId.value && projects.value[currentProjectId.value]) projects.value[currentProjectId.value].updatedAt = new Date().toISOString(); localStorage.setItem('ns318_projects', JSON.stringify(projects.value)); };
             const debouncedSave = debounce(saveData, 1000);
+
             const saveConfig = () => { 
                 localStorage.setItem('ns318_global_cfg', JSON.stringify({ theme: theme.value, isCustomFontActive: isCustomFontActive.value }));
                 if (currentProject.value) { currentProject.value.config = { target: targetGoal.value, typewriter: typewriterMode.value }; saveData(); }
             };
 
+            // Editor Logic
             const activeId = ref(null); const editorRef = ref(null); const mobileView = ref(false); const typewriterMode = ref(false); const targetGoal = ref(5000);
             const activeNode = computed(() => currentProject.value ? currentProject.value.nodes.find(n => n.id === activeId.value) : null);
             const activeChildren = computed(() => activeNode.value && activeNode.value.type === 'folder' ? currentProject.value.nodes.filter(n => n.parent === activeNode.value.id) : []);
             const nodeMap = computed(() => { const map = {}; if (currentProject.value) currentProject.value.nodes.forEach(node => map[node.id] = node); return map; });
-            const breadcrumbs = computed(() => { 
-                if (!activeNode.value || !currentProject.value) return []; 
-                let path = []; let curr = activeNode.value; 
-                while(curr) { 
-                    path.unshift({ id: curr.id, title: curr.title, type: curr.type, iconType: curr.iconType }); 
-                    if(!curr.parent) break; curr = nodeMap.value[curr.parent]; 
-                } 
-                return path; 
-            });
+            const breadcrumbs = computed(() => { if (!activeNode.value || !currentProject.value) return []; let path = []; let curr = activeNode.value; while(curr) { path.unshift({ id: curr.id, title: curr.title, type: curr.type, iconType: curr.iconType }); if(!curr.parent) break; curr = nodeMap.value[curr.parent]; } return path; });
             
             const stats = computed(() => {
                 const txt = activeNode.value?.content || '';
-                return { total: txt.length, noSpace: txt.replace(/\s/g, '').length, percent: targetGoal.value > 0 ? Math.floor((txt.length / targetGoal.value) * 100) : 100 };
+                return { total: txt.length, noSpace: txt.replace(/\s/g, '').length, words: txt.trim() ? txt.trim().split(/\s+/).length : 0, percent: targetGoal.value > 0 ? Math.floor((txt.length / targetGoal.value) * 100) : 100 };
             });
 
+            // Methods
             const applyTheme = () => document.documentElement.setAttribute('data-theme', theme.value);
             const applyFontClass = () => document.body.classList.toggle('custom-font-active', isCustomFontActive.value);
-            const getIconConfig = (item) => {
-                if (item.type === 'folder') return { class: 'ph-folder', color: '#F59E0B' };
-                const type = item.iconType || 'default';
-                return ICON_MAP[type] || ICON_MAP['default'];
-            };
-
+            
             const loadAllData = () => {
                 const p = localStorage.getItem('ns318_projects'); if(p) projects.value = JSON.parse(p);
                 const c = localStorage.getItem('ns318_global_cfg'); if(c) { const cfg = JSON.parse(c); theme.value = cfg.theme || 'light'; isCustomFontActive.value = cfg.isCustomFontActive || false; }
                 applyTheme(); applyFontClass();
             };
 
+            // Icon Picker Logic
             const openPicker = (event, nodeId) => {
                 if (currentProject.value.nodes.find(n => n.id === nodeId)?.type === 'folder') return; 
                 const y = event.clientY + 200 > window.innerHeight ? event.clientY - 150 : event.clientY;
@@ -484,61 +447,68 @@
                 pickerOpen.value = true;
             };
             const changeIcon = (iconType) => {
-                if (pickingNodeId.value) { const node = nodeMap.value[pickingNodeId.value]; if (node) node.iconType = iconType; saveData(); }
+                if (pickingNodeId.value) {
+                    const node = nodeMap.value[pickingNodeId.value];
+                    if (node) node.iconType = iconType;
+                    saveData();
+                }
                 pickerOpen.value = false;
             };
 
-            const updateTypewriter = () => {
-                if(!editorRef.value || !typewriterMode.value) return;
-                // Typewriter logic simplified for contenteditable
-                const selection = window.getSelection();
-                if (selection.rangeCount > 0) {
-                    const range = selection.getRangeAt(0);
-                    const rect = range.getBoundingClientRect();
-                    const workspace = document.getElementById('workspace-el');
-                    if (workspace) {
-                        const offset = rect.top + workspace.scrollTop - (workspace.clientHeight * 0.4);
-                        workspace.scrollTo({ top: offset, behavior: 'smooth' });
-                    }
-                }
+            // --- Breadcrumb & Helper for Icons ---
+            // NodeRow와 동일한 로직을 사용하여 브레드크럼에도 적용
+            const getIconProperty = (item) => {
+                // item은 breadcrumbs 루프에서 오거나, 실제 node 객체일 수 있음.
+                // 안전하게 속성 접근
+                const node = nodeMap.value[item.id] || item;
+                const type = node.iconType || 'default';
+                const isFolder = node.type === 'folder';
+                
+                if (isFolder) return { class: 'ph-folder-open', color: '#F59E0B' };
+                
+                const map = {
+                    'default': { class: 'ph-file-text', color: '' },
+                    'flag-red': { class: 'ph-flag-banner', color: '#EF4444', weight: 'fill' },
+                    'flag-yellow': { class: 'ph-flag-banner', color: '#F59E0B', weight: 'fill' },
+                    'flag-green': { class: 'ph-flag-banner', color: '#10B981', weight: 'fill' },
+                    'flag-blue': { class: 'ph-flag-banner', color: '#3B82F6', weight: 'fill' },
+                    'char': { class: 'ph-user', color: '#8B5CF6' },
+                    'loc': { class: 'ph-map-pin', color: '#EC4899' },
+                    'item': { class: 'ph-key', color: '#F59E0B' },
+                    'idea': { class: 'ph-lightbulb', color: '#EAB308' },
+                    'fight': { class: 'ph-sword', color: '#64748B' },
+                    'love': { class: 'ph-heart', color: '#EF4444', weight: 'fill' },
+                    'magic': { class: 'ph-sparkle', color: '#A855F7' },
+                    'skull': { class: 'ph-skull', color: '#57534E' },
+                    'done': { class: 'ph-check-circle', color: '#10B981', weight: 'fill' },
+                    'time': { class: 'ph-clock', color: '' }
+                };
+                return map[type] || map['default'];
             };
 
-            // ★★★ ContentEditable Logic ★★★
-            const handleEditorInput = (e) => {
-                if (activeNode.value) {
-                    activeNode.value.content = e.target.innerText; // Plain Text로 저장
-                    activeNode.value.updatedAt = new Date().toISOString();
-                    debouncedSave();
-                    updateTypewriter();
-                }
+            const updateTypewriter = (smooth = true) => {
+                if(!editorRef.value) return; 
+                const ta = editorRef.value; const mirror = document.getElementById('caret-mirror'); const workspace = document.getElementById('workspace-el');
+                mirror.className = mobileView.value ? 'mobile' : ''; mirror.textContent = ta.value.substring(0, ta.selectionStart);
+                const span = document.createElement('span'); span.textContent = '.'; mirror.appendChild(span);
+                const paddingTop = mobileView.value ? 40 : 60; const cursorY = span.offsetTop + paddingTop + 40; const viewportH = workspace.clientHeight;
+                const scrollAnchorRatio = typewriterMode.value ? 0.6 : 1; 
+                workspace.scrollTo({ top: cursorY - (viewportH * scrollAnchorRatio) + (18 * 1.8 / 2), behavior: smooth ? 'smooth' : 'auto' });
             };
-            
+
+            const autoResize = () => { if(editorRef.value) { editorRef.value.style.height = 'auto'; editorRef.value.style.height = editorRef.value.scrollHeight + 'px'; } };
+            const handleMainInput = () => { if (activeNode.value) activeNode.value.updatedAt = new Date().toISOString(); autoResize(); updateTypewriter(false); debouncedSave(); };
             const handlePostitInput = (node) => { node.updatedAt = new Date().toISOString(); debouncedSave(); };
-            const handleNav = () => { updateTypewriter(); };
+            const handleNav = () => { updateTypewriter(true); };
             const focusEditor = () => { if (editorRef.value) editorRef.value.focus(); };
 
+            // CRUD & Tree
             const editingProjectId = ref(null);
-            const createProject = () => { 
-                const title = prompt('새 프로젝트:', '새 소설'); 
-                if (title) { 
-                    const newId = Date.now().toString(36); 
-                    projects.value[newId] = { 
-                        id: newId, title, updatedAt: new Date().toISOString(), 
-                        nodes: [
-                            {id:'f1',type:'folder',title:'설정집',parent:null,closed:false,content:'',synopsis:''},
-                            {id:'c1',type:'chapter',title:'세계관',parent:'f1',content:'# 세계관\n',synopsis:'', iconType: 'loc'}, 
-                            {id:'f2',type:'folder',title:'본문',parent:null,closed:false,content:'',synopsis:''},
-                            {id:'c3',type:'chapter',title:'1화',parent:'f2',content:'첫 번째 문단입니다. 이곳을 클릭해서 글을 써보세요.\n\n엔터를 치면 자동으로 문단이 나뉘며 첫 줄 들여쓰기가 적용됩니다.',synopsis:'', iconType: 'default'}
-                        ], 
-                        config:{target:5000} 
-                    }; 
-                    saveData(); loadProject(newId, 'c3'); 
-                } 
-            };
+            const createProject = () => { const title = prompt('새 프로젝트:', '새 소설'); if (title) { const newId = Date.now().toString(36); projects.value[newId] = { id: newId, title, updatedAt: new Date().toISOString(), nodes: [{id:'f1',type:'folder',title:'설정집',parent:null,closed:false,content:'',synopsis:''},{id:'c1',type:'chapter',title:'세계관',parent:'f1',content:'# 세계관\n',synopsis:''}], config:{target:5000} }; saveData(); loadProject(newId, 'c1'); } };
             const deleteProject = (id) => { if(confirm('삭제합니까?')) { delete projects.value[id]; saveData(); if(currentProjectId.value===id) { currentProjectId.value=null; currentView.value='manager'; } } };
             const startEditProject = (id) => { currentProjectId.value = null; editingProjectId.value = id; };
             const endEditProject = () => { if(editingProjectId.value) { if(!projects.value[editingProjectId.value].title.trim()) projects.value[editingProjectId.value].title='제목 없음'; saveData(); editingProjectId.value=null; } };
-            const loadProject = (id, defId = null) => { saveData(); const p = projects.value[id]; if (!p) return; currentProjectId.value=id; activeId.value=defId||(p.nodes.find(n=>n.type==='chapter')?.id||p.nodes[0]?.id); targetGoal.value=p.config.target||5000; typewriterMode.value=p.config.typewriter||false; currentView.value='editor'; };
+            const loadProject = (id, defId = null) => { saveData(); const p = projects.value[id]; if (!p) return; currentProjectId.value=id; activeId.value=defId||(p.nodes.find(n=>n.type==='chapter')?.id||p.nodes[0]?.id); targetGoal.value=p.config.target||5000; typewriterMode.value=p.config.typewriter||false; currentView.value='editor'; nextTick(()=>{ autoResize(); updateTypewriter(false); }); };
             const handleEditorExit = () => { saveData(); currentView.value = 'manager'; };
 
             const editingId = ref(null);
@@ -551,8 +521,9 @@
             const deleteNode = (id) => { if(!confirm('삭제?')) return; const nodes = currentProject.value.nodes; const s = new Set([id]); const f=(p)=>nodes.filter(x=>x.parent===p).forEach(c=>{s.add(c.id);if(c.type==='folder')f(c.id)}); f(id); currentProject.value.nodes=nodes.filter(x=>!s.has(x.id)); if(s.has(activeId.value)) activeId.value=null; saveData(); };
             const onDrop = ({ itemId, newParentId, newIndex }) => { const nodes = currentProject.value.nodes; const node = nodes.find(n => n.id === itemId); if (!node) return; nodes.splice(nodes.indexOf(node), 1); node.parent = newParentId; const siblings = nodes.filter(n => n.parent === newParentId); let insertIdx = siblings.length > 0 ? (newIndex >= siblings.length ? nodes.indexOf(siblings[siblings.length - 1]) + 1 : nodes.indexOf(siblings[newIndex])) : nodes.length; nodes.splice(insertIdx, 0, node); if(newParentId) { const p = nodes.find(n => n.id === newParentId); if(p) p.closed = false; } saveData(); };
 
+            // IO
             const fileInput = ref(null);
-            const exportAllData = () => { saveData(); const b = new Blob([utf8_to_b64(JSON.stringify({ version: "3.27_Full", timestamp: new Date(), projects: projects.value, globalConfig: { theme: theme.value, isCustomFontActive: isCustomFontActive.value } }))], {type: 'text/plain;charset=utf-8'}); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `Story_${new Date().toISOString().slice(0,10)}.vel`; a.click(); };
+            const exportAllData = () => { saveData(); const b = new Blob([utf8_to_b64(JSON.stringify({ version: "3.27_Lite", timestamp: new Date(), projects: projects.value, globalConfig: { theme: theme.value, isCustomFontActive: isCustomFontActive.value } }))], {type: 'text/plain;charset=utf-8'}); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `Story_${new Date().toISOString().slice(0,10)}.vel`; a.click(); };
             const triggerImportAll = () => { fileInput.value.click(); };
             const handleImportAll = (e) => {
                 const f = e.target.files[0]; if (!f) return; const r = new FileReader();
@@ -566,28 +537,15 @@
                 }; r.readAsText(f); e.target.value = '';
             };
 
-            // ★★★ WATCHER: Load Content into Div ★★★
-            // 챕터가 바뀌면 텍스트(\n)를 HTML 문단(<p>)으로 변환하여 표기
-            watch(activeId, (newId) => {
-                if (newId && activeNode.value && activeNode.value.type === 'chapter') {
-                    nextTick(() => {
-                        if (editorRef.value) {
-                            const raw = activeNode.value.content || '';
-                            // 줄바꿈을 기준으로 문단을 나눔. 빈 줄도 p태그로 감싸야 함.
-                            const html = raw.split('\n').map(line => `<p>${line || '<br>'}</p>`).join('');
-                            editorRef.value.innerHTML = html;
-                        }
-                    });
-                }
-            }, { immediate: true });
-
-            watch(mobileView, () => nextTick(updateTypewriter));
+            watch(activeId, () => nextTick(() => { autoResize(); updateTypewriter(false); }));
+            watch(mobileView, () => nextTick(() => updateTypewriter(false)));
             watch(currentProjectId, () => { activeId.value = null; });
             const toggleTheme = () => { theme.value = theme.value==='light'?'dark':'light'; applyTheme(); saveConfig(); };
-            const toggleMobile = () => { mobileView.value = !mobileView.value; };
-            const toggleTypewriter = () => { typewriterMode.value = !typewriterMode.value; saveConfig(); nextTick(updateTypewriter); };
+            const toggleMobile = () => { mobileView.value = !mobileView.value; nextTick(autoResize); };
+            const toggleTypewriter = () => { typewriterMode.value = !typewriterMode.value; saveConfig(); nextTick(() => updateTypewriter(true)); };
             const toggleRidibatangFont = () => { isCustomFontActive.value = !isCustomFontActive.value; applyFontClass(); saveConfig(); showInternalAlert('폰트 변경됨'); };
 
+            // Init
             onMounted(() => { 
                 loadAllData(); 
                 window.addEventListener('beforeunload', () => { saveData(); });
@@ -595,8 +553,8 @@
 
             return {
                 currentView, projects, currentProject, currentProjectId, editingProjectId, activeId, editingId, sidebarOpen, theme, mobileView, typewriterMode, activeNode, rootNodes, activeChildren, breadcrumbs, stats, showStats, targetGoal, editorRef, fileInput, showAlert, alertMessage, alertType, isCustomFontActive,
-                loadProject, createProject, deleteProject, startEditProject, endEditProject, exportAllData, triggerImportAll, handleImportAll, selectNode, toggleNode, startEdit, endEdit, addNode, deleteNode, onDrop, toggleTheme, toggleMobile, toggleTypewriter, toggleRidibatangFont, handleEditorExit, handleEditorInput, handlePostitInput, handleNav, focusEditor, saveConfig, formatDate, formatPostitDate,
-                pickerOpen, pickerPos, openPicker, changeIcon, getIconConfig
+                loadProject, createProject, deleteProject, startEditProject, endEditProject, exportAllData, triggerImportAll, handleImportAll, selectNode, toggleNode, startEdit, endEdit, addNode, deleteNode, onDrop, toggleTheme, toggleMobile, toggleTypewriter, toggleRidibatangFont, handleEditorExit, handleMainInput, handlePostitInput, handleNav, focusEditor, saveConfig, formatDate, formatPostitDate,
+                pickerOpen, pickerPos, openPicker, changeIcon, getIconProperty
             };
         }
     });
